@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=240, initial-scale=1.0, user-scalable=no">
+<title>Spotify</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--g:#1DB954;--g2:#1ed760;--blk:#090909;--dk:#111;--card:#181818;--card2:#282828;--tx:#fff;--mu:rgba(255,255,255,.44);--w:240px;--h:282px}
+html,body{width:var(--w);height:var(--h);overflow:hidden;background:var(--blk);color:var(--tx);font-family:"DM Mono",monospace;font-size:10px;-webkit-font-smoothing:antialiased;user-select:none}
+#app{width:var(--w);height:var(--h);display:flex;flex-direction:column;position:relative;overflow:hidden}
+.view{display:none;flex-direction:column;flex:1;overflow:hidden}
+.view.active{display:flex}
+
+/* PLAYER */
+#vp{background:var(--blk);position:relative}
+.pbg{position:absolute;inset:0;opacity:.16;transition:background 1.2s;z-index:0}
+.pc{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding:8px;gap:6px}
+.topbar{display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.logo{font-family:"Bebas Neue",sans-serif;font-size:13px;letter-spacing:.06em;color:var(--g)}
+.mbtn{background:none;border:none;cursor:pointer;color:var(--mu);display:flex;flex-direction:column;gap:3px;padding:2px}
+.mbtn span{display:block;width:14px;height:1.5px;background:currentColor;border-radius:1px}
+.mbtn:hover{color:var(--tx)}
+.awrap{flex-shrink:0;display:flex;justify-content:center}
+.art{width:90px;height:90px;border-radius:5px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.75);position:relative;transition:box-shadow .5s}
+.art canvas{width:100%;height:100%;display:block}
+.art.p{box-shadow:0 8px 30px rgba(0,0,0,.75),0 0 20px rgba(29,185,84,.2)}
+.eqo{position:absolute;bottom:5px;right:5px;display:flex;align-items:flex-end;gap:1.5px;opacity:0;transition:opacity .3s}
+.art.p .eqo{opacity:1}
+.eqb{width:2px;border-radius:1px;background:rgba(255,255,255,.8);animation:eq .5s ease-in-out infinite alternate}
+.eqb:nth-child(1){height:5px;animation-delay:0s}
+.eqb:nth-child(2){height:9px;animation-delay:.12s}
+.eqb:nth-child(3){height:6px;animation-delay:.06s}
+.eqb:nth-child(4){height:11px;animation-delay:.18s}
+@keyframes eq{from{transform:scaleY(.2)}to{transform:scaleY(1)}}
+.ti{text-align:center;flex-shrink:0;overflow:hidden}
+.tn{font-family:"Bebas Neue",sans-serif;font-size:16px;letter-spacing:.04em;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ta{color:var(--mu);font-size:9px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog{flex-shrink:0}
+.pt{height:2px;background:rgba(255,255,255,.12);border-radius:1px;overflow:hidden;cursor:pointer}
+.pf{height:100%;background:var(--g);border-radius:1px;width:0%;transition:width .5s linear}
+.ptimes{display:flex;justify-content:space-between;color:var(--mu);font-size:8px;margin-top:3px}
+.ctrls{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding:0 4px}
+.ctrl{background:none;border:none;cursor:pointer;color:var(--mu);display:flex;align-items:center;justify-content:center;transition:color .15s,transform .1s;padding:3px;border-radius:50%}
+.ctrl:hover{color:var(--tx)}
+.ctrl:active{transform:scale(.88)}
+.ctrl.on{color:var(--g)}
+.cplay{width:36px;height:36px;background:var(--tx);border-radius:50%;color:#000;box-shadow:0 2px 12px rgba(29,185,84,.2)}
+.cplay:hover{background:var(--g2);color:#000;transform:scale(1.05)}
+.cplay:active{transform:scale(.93)}
+.vrow{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.vt{flex:1;height:2px;background:rgba(255,255,255,.12);border-radius:1px;overflow:hidden}
+.vf{height:100%;background:var(--mu);border-radius:1px;transition:width .2s}
+
+/* QUEUE */
+#vq{background:var(--dk)}
+.qhdr{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 5px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06)}
+.qttl{font-family:"Bebas Neue",sans-serif;font-size:13px;letter-spacing:.06em}
+.bbtn{background:none;border:none;cursor:pointer;color:var(--mu);font-size:14px;padding:0}
+.bbtn:hover{color:var(--tx)}
+.ql{flex:1;overflow-y:auto;padding:4px 0}
+.ql::-webkit-scrollbar{width:2px}
+.ql::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1)}
+.qi{display:flex;align-items:center;gap:7px;padding:5px 8px;cursor:pointer;transition:background .1s;border-radius:4px;margin:0 4px}
+.qi:hover{background:rgba(255,255,255,.06)}
+.qi.now{background:rgba(29,185,84,.1)}
+.qth{width:30px;height:30px;border-radius:3px;overflow:hidden;flex-shrink:0}
+.qth canvas{width:100%;height:100%;display:block}
+.qinfo{flex:1;overflow:hidden}
+.qn{font-size:9px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qar{font-size:8px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qdur{font-size:8px;color:var(--mu);flex-shrink:0}
+.ndot{width:5px;height:5px;background:var(--g);border-radius:50%;flex-shrink:0;box-shadow:0 0 4px var(--g);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* SEARCH */
+#vs{background:var(--dk);padding:8px;gap:7px}
+.sb{display:flex;align-items:center;background:rgba(255,255,255,.1);border-radius:4px;padding:5px 8px;gap:5px;flex-shrink:0;border:1px solid transparent;transition:border-color .2s}
+.sb:focus-within{border-color:rgba(255,255,255,.2)}
+.sb input{flex:1;background:none;border:none;outline:none;color:var(--tx);font-family:"DM Mono",monospace;font-size:9.5px}
+.sb input::placeholder{color:var(--mu)}
+.sgo{background:var(--g);border:none;border-radius:3px;color:#000;font-family:"Bebas Neue",sans-serif;font-size:10px;letter-spacing:.05em;padding:3px 7px;cursor:pointer;flex-shrink:0}
+.sgo:active{opacity:.8}
+.glbl{font-family:"Bebas Neue",sans-serif;font-size:11px;color:var(--mu);letter-spacing:.08em;flex-shrink:0}
+.gg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;flex:1}
+.gc{height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:11px;letter-spacing:.04em;color:#fff;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.5);transition:filter .1s,transform .1s}
+.gc:hover{filter:brightness(1.2)}
+.gc:active{transform:scale(.95)}
+
+/* DRAWER */
+.dov{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:90;opacity:0;pointer-events:none;transition:opacity .25s}
+.dov.open{opacity:1;pointer-events:all}
+.dr{position:absolute;top:0;right:-140px;width:135px;height:100%;background:var(--card);z-index:100;transition:right .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:12px 0 8px;box-shadow:-4px 0 20px rgba(0,0,0,.6)}
+.dr.open{right:0}
+.di{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:10px;color:var(--mu);transition:color .15s,background .15s;border-radius:4px;margin:0 4px}
+.di:hover{color:var(--tx);background:rgba(255,255,255,.06)}
+.di.on{color:var(--g)}
+.dd{height:1px;background:rgba(255,255,255,.06);margin:6px 10px}
+
+/* TOAST */
+.toast{position:absolute;bottom:10px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--card2);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:5px 12px;font-size:9px;color:var(--tx);white-space:nowrap;z-index:200;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+ <div id="vp" class="view active">
+  <div class="pbg" id="pbg"></div>
+  <div class="pc">
+   <div class="topbar">
+    <div class="logo">Spotify</div>
+    <button class="mbtn" onclick="openD()"><span></span><span></span><span></span></button>
+   </div>
+   <div class="awrap">
+    <div class="art" id="art">
+     <canvas id="ac" width="90" height="90"></canvas>
+     <div class="eqo"><div class="eqb"></div><div class="eqb"></div><div class="eqb"></div><div class="eqb"></div></div>
+    </div>
+   </div>
+   <div class="ti">
+    <div class="tn" id="tn">Blinding Lights</div>
+    <div class="ta" id="ta">The Weeknd</div>
+   </div>
+   <div class="prog">
+    <div class="pt" id="pt"><div class="pf" id="pf"></div></div>
+    <div class="ptimes"><span id="el">0:00</span><span id="tot">3:20</span></div>
+   </div>
+   <div class="ctrls">
+    <button class="ctrl" id="bsh" onclick="toggleShuffle()"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg></button>
+    <button class="ctrl" onclick="prev()"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+    <button class="ctrl cplay" id="bp" onclick="togglePlay()"><svg id="pi" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
+    <button class="ctrl" onclick="next()"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+    <button class="ctrl" id="blk" onclick="toggleLike()"><svg id="li" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg></button>
+   </div>
+   <div class="vrow">
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="rgba(255,255,255,.3)"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+    <div class="vt"><div class="vf" id="vf" style="width:70%"></div></div>
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="rgba(255,255,255,.3)"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+   </div>
+  </div>
+ </div>
+
+ <div id="vq" class="view">
+  <div class="qhdr"><div class="qttl">QUEUE</div><button class="bbtn" onclick="sw('vp')">✕</button></div>
+  <div class="ql" id="ql"></div>
+ </div>
+
+ <div id="vs" class="view">
+  <div class="sb">
+   <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255,255,255,.4)"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+   <input id="si" type="text" placeholder="Search songs, artists...">
+   <button class="sgo" onclick="doSearch()">GO</button>
+  </div>
+  <div class="glbl">BROWSE</div>
+  <div class="gg" id="gg"></div>
+ </div>
+
+ <div class="dov" id="dov" onclick="closeD()"></div>
+ <div class="dr" id="dr">
+  <div class="di" onclick="closeD();sw('vp')"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>Now Playing</div>
+  <div class="di" onclick="closeD();sw('vq')"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>Queue</div>
+  <div class="di" onclick="closeD();sw('vs')"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search</div>
+  <div class="dd"></div>
+  <div class="di" onclick="closeD();toggleLike()"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"/></svg>Like This</div>
+  <div class="di" onclick="closeD();askR1()"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1C5.9 1 1 5.9 1 12s4.9 11 11 11 11-4.9 11-11S18.1 1 12 1zm1 17h-2v-2h2v2zm2.1-7.8l-.9.9C13.4 12 13 12.5 13 14h-2v-.5c0-1.1.4-2.1 1.2-2.8l1.2-1.3c.4-.3.6-.8.6-1.4 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.2 1.8-4 4-4s4 1.8 4 4c0 .9-.3 1.7-.9 2.3z"/></svg>Ask r1</div>
+ </div>
+
+ <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const TR=[
+ {n:"Blinding Lights",a:"The Weeknd",d:200,p:["#0d0030","#5500bb","#ff4400"]},
+ {n:"As It Was",a:"Harry Styles",d:157,p:["#001a33","#0055cc","#66aaff"]},
+ {n:"Flowers",a:"Miley Cyrus",d:201,p:["#0a2200","#2a7700","#aaee00"]},
+ {n:"Cruel Summer",a:"Taylor Swift",d:178,p:["#220011","#880033","#ff3388"]},
+ {n:"Golden Hour",a:"JVKE",d:209,p:["#221100","#995500","#ffcc00"]},
+ {n:"Levitating",a:"Dua Lipa",d:203,p:["#000022","#0000aa","#4444ff"]},
+ {n:"Anti-Hero",a:"Taylor Swift",d:197,p:["#110022","#550099","#cc44ff"]},
+ {n:"Bad Guy",a:"Billie Eilish",d:194,p:["#001100","#003300","#00ff44"]},
+ {n:"Watermelon Sugar",a:"Harry Styles",d:174,p:["#220000","#990033","#ff6666"]},
+ {n:"Peaches",a:"Justin Bieber",d:198,p:["#221100","#bb5500","#ffaa00"]},
+];
+const GN=[
+ {n:"Pop",c:"#C13584"},{n:"Hip-Hop",c:"#1DB954"},{n:"Electronic",c:"#006699"},
+ {n:"R&B",c:"#9C27B0"},{n:"Rock",c:"#B71C1C"},{n:"Indie",c:"#FF6934"},
+ {n:"Jazz",c:"#5D4037"},{n:"Dance",c:"#0288D1"},{n:"Chill",c:"#00796B"},
+];
+
+let cur=0,playing=true,liked=false,shuffle=false,elapsed=42,vol=70,ticker=null;
+
+function drawArt(c,t,sz){
+ const x=c.getContext('2d');
+ c.width=sz;c.height=sz;
+ const g=x.createLinearGradient(0,0,sz,sz);
+ g.addColorStop(0,t.p[0]);g.addColorStop(.55,t.p[1]);g.addColorStop(1,t.p[2]);
+ x.fillStyle=g;x.fillRect(0,0,sz,sz);
+ x.save();x.globalAlpha=.28;
+ const rg=x.createRadialGradient(sz*.7,sz*.3,0,sz*.7,sz*.3,sz*.5);
+ rg.addColorStop(0,t.p[2]);rg.addColorStop(1,'transparent');
+ x.fillStyle=rg;x.fillRect(0,0,sz,sz);x.restore();
+ x.fillStyle='rgba(255,255,255,.85)';
+ x.font='bold '+Math.round(sz*.38)+'px "Bebas Neue",monospace';
+ x.textAlign='center';x.textBaseline='middle';
+ x.fillText(t.n[0],sz/2,sz/2+sz*.03);
+}
+
+function refreshArt(){
+ const t=TR[cur];
+ drawArt(document.getElementById('ac'),t,90);
+ document.getElementById('pbg').style.background=
+  'radial-gradient(ellipse at top,'+t.p[1]+' 0%,transparent 70%)';
+}
+
+function load(i,ap){
+ cur=((i%TR.length)+TR.length)%TR.length;
+ const t=TR[cur];
+ document.getElementById('tn').textContent=t.n;
+ document.getElementById('ta').textContent=t.a;
+ document.getElementById('tot').textContent=fmt(t.d);
+ elapsed=0;liked=false;
+ refreshArt();upProg();upLike();bldQ();
+ if(ap){playing=true;upPlay();startT();}
+}
+
+function togglePlay(){playing=!playing;upPlay();playing?startT():stopT();}
+function next(){load(shuffle?Math.floor(Math.random()*TR.length):cur+1,true);}
+function prev(){if(elapsed>3){elapsed=0;upProg();return;}load(cur-1,true);}
+function toggleShuffle(){shuffle=!shuffle;document.getElementById('bsh').classList.toggle('on',shuffle);toast(shuffle?'Shuffle on':'Shuffle off');}
+function toggleLike(){liked=!liked;upLike();toast(liked?'♥ Saved':'Removed');try{PluginMessageHandler.postMessage(JSON.stringify({message:liked?`User liked "${TR[cur].n}" by ${TR[cur].a}`:`User unliked "${TR[cur].n}"`,useLLM:false}));}catch(e){}}
+
+function upPlay(){
+ const ic=document.getElementById('pi'),art=document.getElementById('art');
+ ic.innerHTML=playing?'<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>':'<path d="M8 5v14l11-7z"/>';
+ art.classList.toggle('p',playing);
+}
+function upLike(){
+ const btn=document.getElementById('blk'),ic=document.getElementById('li');
+ btn.style.color=liked?'#E91E63':'';
+ ic.innerHTML=liked?'<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>':'<path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/>';
+}
+
+function startT(){stopT();ticker=setInterval(()=>{if(!playing)return;elapsed++;if(elapsed>=TR[cur].d){next();return;}upProg();},1000);}
+function stopT(){clearInterval(ticker);ticker=null;}
+function upProg(){const p=(elapsed/TR[cur].d)*100;document.getElementById('pf').style.width=p+'%';document.getElementById('el').textContent=fmt(elapsed);}
+function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+
+document.getElementById('pt').addEventListener('click',e=>{
+ const r=e.currentTarget.getBoundingClientRect();
+ elapsed=Math.floor((e.clientX-r.left)/r.width*TR[cur].d);upProg();
+});
+
+function bldQ(){
+ const l=document.getElementById('ql');l.innerHTML='';
+ TR.forEach((t,i)=>{
+  const el=document.createElement('div');el.className='qi'+(i===cur?' now':'');
+  const th=document.createElement('div');th.className='qth';
+  const c=document.createElement('canvas');drawArt(c,t,30);th.appendChild(c);
+  el.innerHTML='<div class="qinfo"><div class="qn">'+t.n+'</div><div class="qar">'+t.a+'</div></div><div class="qdur">'+fmt(t.d)+'</div>';
+  el.insertBefore(th,el.firstChild);
+  if(i===cur){const d=document.createElement('div');d.className='ndot';el.appendChild(d);}
+  el.onclick=()=>{load(i,true);sw('vp');};
+  l.appendChild(el);
+ });
+ const nw=l.querySelector('.now');if(nw)setTimeout(()=>nw.scrollIntoView({block:'center'}),50);
+}
+
+function bldGenres(){
+ const g=document.getElementById('gg');g.innerHTML='';
+ GN.forEach(gn=>{
+  const c=document.createElement('div');c.className='gc';c.style.background=gn.c;c.textContent=gn.n;
+  c.onclick=()=>{try{PluginMessageHandler.postMessage(JSON.stringify({message:'Recommend 3 popular '+gn.n+' songs. Reply ONLY with JSON: {"tracks":[{"name":"...","artist":"..."},{"name":"...","artist":"..."},{"name":"...","artist":"..."}]}',useLLM:true}));toast('Finding '+gn.n+'...');}catch(e){toast('Browsing '+gn.n);}};
+  g.appendChild(c);
+ });
+}
+
+function doSearch(){
+ const q=document.getElementById('si').value.trim();if(!q)return;
+ const m=TR.filter(t=>t.n.toLowerCase().includes(q.toLowerCase())||t.a.toLowerCase().includes(q.toLowerCase()));
+ if(m.length){load(TR.indexOf(m[0]),true);sw('vp');toast('Playing: '+m[0].n);}
+ else{try{PluginMessageHandler.postMessage(JSON.stringify({message:'Search for "'+q+'" on Spotify. Top result? Reply ONLY with JSON: {"tracks":[{"name":"...","artist":"..."}]}',useLLM:true}));toast('Searching...');}catch(e){toast('No results');}}
+}
+document.getElementById('si').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+
+function sw(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='vq')bldQ();}
+function openD(){document.getElementById('dr').classList.add('open');document.getElementById('dov').classList.add('open');}
+function closeD(){document.getElementById('dr').classList.remove('open');document.getElementById('dov').classList.remove('open');}
+
+// r1 hardware events
+window.addEventListener('scrollUp',()=>{vol=Math.min(100,vol+5);document.getElementById('vf').style.width=vol+'%';toast('Vol '+vol+'%');});
+window.addEventListener('scrollDown',()=>{vol=Math.max(0,vol-5);document.getElementById('vf').style.width=vol+'%';toast('Vol '+vol+'%');});
+window.addEventListener('sideClick',()=>{togglePlay();toast(playing?'▶ Playing':'⏸ Paused');});
+window.addEventListener('longPressStart',()=>{next();toast('⏭ Next');});
+
+window.onPluginMessage=function(data){
+ try{
+  let raw=data.data||data.message||'';
+  if(typeof raw==='string')raw=raw.replace(/```json|```/g,'').trim();
+  const p=JSON.parse(raw);
+  if(p.tracks&&p.tracks.length){
+   const m=TR.find(t=>t.n.toLowerCase().includes(p.tracks[0].name.toLowerCase())||t.a.toLowerCase().includes(p.tracks[0].artist.toLowerCase()));
+   if(m){load(TR.indexOf(m),true);toast('Playing: '+p.tracks[0].name);}
+   else toast('r1: '+p.tracks[0].name+' — '+p.tracks[0].artist);
+  }
+ }catch(e){
+  const msg=data.message||data.data||'';
+  if(msg)toast(msg.slice(0,40));
+ }
+};
+
+function askR1(){
+ const t=TR[cur];
+ try{PluginMessageHandler.postMessage(JSON.stringify({message:'I\'m listening to "'+t.n+'" by '+t.a+'. Recommend one similar song and why. Keep it short.',useLLM:true,wantsR1Response:true}));toast('Asking r1...');}
+ catch(e){toast('r1 not connected');}
+}
+
+// Init
+refreshArt();upProg();upPlay();upLike();bldGenres();startT();
+
+(async()=>{
+ try{const s=await window.creationStorage.plain.getItem('sp_st');if(s){const d=JSON.parse(atob(s));if(d.track!==undefined)load(d.track,false);if(d.vol!==undefined){vol=d.vol;document.getElementById('vf').style.width=vol+'%';}}}catch(e){}
+})();
+setInterval(async()=>{try{await window.creationStorage.plain.setItem('sp_st',btoa(JSON.stringify({track:cur,vol})));}catch(e){}},15000);
+
+let tt=null;
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),2200);}
+</script>
+</body>
+</html>
